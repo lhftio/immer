@@ -10,9 +10,11 @@ Contents
    :maxdepth: 3
 
    introduction
+   design
    containers
    transients
    algorithms
+   utilities
    memory
 
 .. toctree::

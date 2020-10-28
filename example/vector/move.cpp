@@ -1,25 +1,13 @@
 //
-// immer - immutable data structures for C++
-// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
+// immer: immutable data structures for C++
+// Copyright (C) 2016, 2017, 2018 Juan Pedro Bolivar Puente
 //
-// This file is part of immer.
-//
-// immer is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// immer is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with immer.  If not, see <http://www.gnu.org/licenses/>.
+// This software is distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://boost.org/LICENSE_1_0.txt
 //
 
-#include <immer/vector.hpp>
 #include <cassert>
+#include <immer/vector.hpp>
 
 // include:move-bad/start
 immer::vector<int> do_stuff(const immer::vector<int> v)
@@ -37,7 +25,7 @@ immer::vector<int> do_stuff_better(immer::vector<int> v)
 
 int main()
 {
-    auto v = immer::vector<int>{};
+    auto v  = immer::vector<int>{};
     auto v1 = do_stuff(v);
     auto v2 = do_stuff_better(v);
     assert(v1.size() == 1);

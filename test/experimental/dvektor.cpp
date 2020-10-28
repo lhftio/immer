@@ -1,32 +1,21 @@
 //
-// immer - immutable data structures for C++
-// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
+// immer: immutable data structures for C++
+// Copyright (C) 2016, 2017, 2018 Juan Pedro Bolivar Puente
 //
-// This file is part of immer.
-//
-// immer is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// immer is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with immer.  If not, see <http://www.gnu.org/licenses/>.
+// This software is distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://boost.org/LICENSE_1_0.txt
 //
 
-#include <iostream>
 #include <immer/experimental/dvektor.hpp>
 
-#include <doctest.h>
 #include <boost/range/adaptors.hpp>
 
 #include <algorithm>
 #include <numeric>
 #include <vector>
+#include <iostream>
+
+#include <doctest.h>
 
 using namespace immer;
 
@@ -41,7 +30,7 @@ TEST_CASE("push back one element")
     SUBCASE("one element")
     {
         const auto v1 = dvektor<int>{};
-        auto v2 = v1.push_back(42);
+        auto v2       = v1.push_back(42);
         CHECK(v1.size() == 0u);
         CHECK(v2.size() == 1u);
         CHECK(v2[0] == 42);
@@ -50,7 +39,7 @@ TEST_CASE("push back one element")
     SUBCASE("many elements")
     {
         const auto n = 666u;
-        auto v = dvektor<unsigned>{};
+        auto v       = dvektor<unsigned>{};
         for (auto i = 0u; i < n; ++i) {
             v = v.push_back(i * 10);
             CHECK(v.size() == i + 1);
@@ -63,7 +52,7 @@ TEST_CASE("push back one element")
 TEST_CASE("update")
 {
     const auto n = 42u;
-    auto v = dvektor<unsigned>{};
+    auto v       = dvektor<unsigned>{};
     for (auto i = 0u; i < n; ++i)
         v = v.push_back(i);
 
@@ -84,7 +73,7 @@ TEST_CASE("update")
             v = v.push_back(i);
 
         auto u = v.assoc(3u, 13u);
-        u = u.assoc(200u, 7u);
+        u      = u.assoc(200u, 7u);
         CHECK(u.size() == v.size());
 
         CHECK(u[2u] == 2u);
@@ -107,19 +96,19 @@ TEST_CASE("update")
             v = v.push_back(i);
 
         for (auto i = 0u; i < v.size(); ++i) {
-            v = v.assoc(i, i+1);
-            CHECK(v[i] == i+1);
+            v = v.assoc(i, i + 1);
+            CHECK(v[i] == i + 1);
         }
     }
 
     SUBCASE("update")
     {
-        const auto u = v.update(10u, [] (auto x) { return x + 10; });
+        const auto u = v.update(10u, [](auto x) { return x + 10; });
         CHECK(u.size() == v.size());
         CHECK(u[10u] == 20u);
         CHECK(v[40u] == 40u);
 
-        const auto w = v.update(40u, [] (auto x) { return x - 10; });
+        const auto w = v.update(40u, [](auto x) { return x - 10; });
         CHECK(w.size() == v.size());
         CHECK(w[40u] == 30u);
         CHECK(v[40u] == 40u);
@@ -130,7 +119,7 @@ TEST_CASE("update")
 TEST_CASE("big")
 {
     const auto n = 1000000;
-    auto v = dvektor<unsigned>{};
+    auto v       = dvektor<unsigned>{};
     for (auto i = 0u; i < n; ++i)
         v = v.push_back(i);
 
@@ -143,8 +132,8 @@ TEST_CASE("big")
     SUBCASE("assoc")
     {
         for (auto i = 0u; i < n; ++i) {
-            v = v.assoc(i, i+1);
-            CHECK(v[i] == i+1);
+            v = v.assoc(i, i + 1);
+            CHECK(v[i] == i + 1);
         }
     }
 }
@@ -153,7 +142,7 @@ TEST_CASE("big")
 TEST_CASE("iterator")
 {
     const auto n = 666u;
-    auto v = dvektor<unsigned>{};
+    auto v       = dvektor<unsigned>{};
     for (auto i = 0u; i < n; ++i)
         v = v.push_back(i);
 
@@ -172,10 +161,7 @@ TEST_CASE("iterator")
         std::equal(v.begin(), v.end(), s.begin(), s.end());
     }
 
-    SUBCASE("can go back from end")
-    {
-        CHECK(n-1 == *--v.end());
-    }
+    SUBCASE("can go back from end") { CHECK(n - 1 == *--v.end()); }
 
     SUBCASE("works with reversed range adaptor")
     {

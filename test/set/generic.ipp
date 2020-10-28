@@ -1,21 +1,9 @@
 //
-// immer - immutable data structures for C++
-// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
+// immer: immutable data structures for C++
+// Copyright (C) 2016, 2017, 2018 Juan Pedro Bolivar Puente
 //
-// This file is part of immer.
-//
-// immer is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// immer is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with immer.  If not, see <http://www.gnu.org/licenses/>.
+// This software is distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://boost.org/LICENSE_1_0.txt
 //
 
 #ifndef SET_T
@@ -24,21 +12,21 @@
 #define SET_T ::immer::set
 #endif
 
-#include "test/util.hpp"
 #include "test/dada.hpp"
+#include "test/util.hpp"
 
 #include <immer/algorithm.hpp>
 
 #include <catch.hpp>
 
-#include <unordered_set>
 #include <random>
+#include <unordered_set>
 
-template <typename T=unsigned>
+template <typename T = unsigned>
 auto make_generator()
 {
     auto engine = std::default_random_engine{42};
-    auto dist = std::uniform_int_distribution<T>{};
+    auto dist   = std::uniform_int_distribution<T>{};
     return std::bind(dist, engine);
 }
 
@@ -47,25 +35,26 @@ struct conflictor
     unsigned v1;
     unsigned v2;
 
-    bool operator== (const conflictor& x) const
-    { return v1 == x.v1 && v2 == x.v2; }
+    bool operator==(const conflictor& x) const
+    {
+        return v1 == x.v1 && v2 == x.v2;
+    }
 };
 
 struct hash_conflictor
 {
-    std::size_t operator() (const conflictor& x) const
-    { return x.v1; }
+    std::size_t operator()(const conflictor& x) const { return x.v1; }
 };
 
 auto make_values_with_collisions(unsigned n)
 {
-    auto gen = make_generator();
-    auto vals = std::vector<conflictor>{};
+    auto gen   = make_generator();
+    auto vals  = std::vector<conflictor>{};
     auto vals_ = std::unordered_set<conflictor, hash_conflictor>{};
     generate_n(back_inserter(vals), n, [&] {
         auto newv = conflictor{};
         do {
-            newv = { unsigned(gen() % (n / 2)), gen() };
+            newv = {unsigned(gen() % (n / 2)), gen()};
         } while (!vals_.insert(newv).second);
         return newv;
     });
@@ -86,6 +75,64 @@ auto make_test_set(const std::vector<conflictor>& vals)
     for (auto&& v : vals)
         s = s.insert(v);
     return s;
+}
+
+template <std::size_t BufLen>
+struct unaligned_str
+{
+    std::array<char, BufLen> m_data{};
+
+    unaligned_str() = default;
+    unaligned_str(const std::string& in)
+    {
+        for (std::size_t i = 0; i < std::min(m_data.size() - 1, in.size()); i++)
+            m_data[i] = in[i];
+    }
+    unaligned_str(const char* in)
+        : unaligned_str{std::string{in}}
+    {}
+
+    std::string str() const { return m_data.data(); }
+
+    bool operator==(unaligned_str other) const
+    {
+        return m_data == other.m_data;
+    }
+
+    bool operator!=(unaligned_str other) const
+    {
+        return m_data != other.m_data;
+    }
+};
+
+namespace std {
+template <size_t BufLen>
+struct hash<unaligned_str<BufLen>>
+{
+    size_t operator()(const unaligned_str<BufLen>& str) const
+    {
+        return std::hash<std::string>{}(str.str());
+    }
+};
+} // namespace std
+
+template <size_t BufLen>
+void check_with_len()
+{
+    auto v = SET_T<unaligned_str<BufLen>>{};
+
+    for (int i = 0; i < 1; i++)
+        v = v.insert(std::to_string(i));
+
+    CHECK(v.count("0") == 1);
+}
+
+TEST_CASE("insert type with no alignment requirement")
+{
+    check_with_len<1>();
+    check_with_len<9>();
+    check_with_len<15>();
+    check_with_len<17>();
 }
 
 TEST_CASE("instantiation")
@@ -116,7 +163,7 @@ TEST_CASE("insert a lot")
 {
     constexpr auto N = 666u;
 
-    auto gen = make_generator();
+    auto gen  = make_generator();
     auto vals = std::vector<unsigned>{};
     generate_n(back_inserter(vals), N, gen);
     auto s = SET_T<unsigned>{};
@@ -124,7 +171,7 @@ TEST_CASE("insert a lot")
     for (auto i = 0u; i < N; ++i) {
         s = s.insert(vals[i]);
         CHECK(s.size() == i + 1);
-        for (auto j : test_irange(0u, i+1))
+        for (auto j : test_irange(0u, i + 1))
             CHECK(s.count(vals[j]) == 1);
         for (auto j : test_irange(i + 1u, N))
             CHECK(s.count(vals[j]) == 0);
@@ -134,12 +181,12 @@ TEST_CASE("insert a lot")
 TEST_CASE("insert conflicts")
 {
     constexpr auto N = 666u;
-    auto vals = make_values_with_collisions(N);
-    auto s = SET_T<conflictor, hash_conflictor>{};
+    auto vals        = make_values_with_collisions(N);
+    auto s           = SET_T<conflictor, hash_conflictor>{};
     for (auto i = 0u; i < N; ++i) {
         s = s.insert(vals[i]);
         CHECK(s.size() == i + 1);
-        for (auto j : test_irange(0u, i+1))
+        for (auto j : test_irange(0u, i + 1))
             CHECK(s.count(vals[j]) == 1);
         for (auto j : test_irange(i + 1u, N))
             CHECK(s.count(vals[j]) == 0);
@@ -149,8 +196,8 @@ TEST_CASE("insert conflicts")
 TEST_CASE("erase a lot")
 {
     constexpr auto N = 666u;
-    auto gen = make_generator();
-    auto vals = std::vector<unsigned>{};
+    auto gen         = make_generator();
+    auto vals        = std::vector<unsigned>{};
     generate_n(back_inserter(vals), N, gen);
 
     auto s = SET_T<unsigned>{};
@@ -160,7 +207,7 @@ TEST_CASE("erase a lot")
     for (auto i = 0u; i < N; ++i) {
         s = s.erase(vals[i]);
         CHECK(s.size() == N - i - 1);
-        for (auto j : test_irange(0u, i+1))
+        for (auto j : test_irange(0u, i + 1))
             CHECK(s.count(vals[j]) == 0);
         for (auto j : test_irange(i + 1u, N))
             CHECK(s.count(vals[j]) == 1);
@@ -170,15 +217,15 @@ TEST_CASE("erase a lot")
 TEST_CASE("erase conflicts")
 {
     constexpr auto N = 666u;
-    auto vals = make_values_with_collisions(N);
-    auto s = SET_T<conflictor, hash_conflictor>{};
+    auto vals        = make_values_with_collisions(N);
+    auto s           = SET_T<conflictor, hash_conflictor>{};
     for (auto i = 0u; i < N; ++i)
         s = s.insert(vals[i]);
 
     for (auto i = 0u; i < N; ++i) {
         s = s.erase(vals[i]);
         CHECK(s.size() == N - i - 1);
-        for (auto j : test_irange(0u, i+1))
+        for (auto j : test_irange(0u, i + 1))
             CHECK(s.count(vals[j]) == 0);
         for (auto j : test_irange(i + 1u, N))
             CHECK(s.count(vals[j]) == 1);
@@ -188,12 +235,9 @@ TEST_CASE("erase conflicts")
 TEST_CASE("accumulate")
 {
     const auto n = 666u;
-    auto v = make_test_set(n);
+    auto v       = make_test_set(n);
 
-    auto expected_n =
-        [] (auto n) {
-            return n * (n - 1) / 2;
-        };
+    auto expected_n = [](auto n) { return n * (n - 1) / 2; };
 
     SECTION("sum collection")
     {
@@ -201,22 +245,32 @@ TEST_CASE("accumulate")
         CHECK(sum == expected_n(v.size()));
     }
 
-    SECTION("sum collisions") {
+    SECTION("sum collisions")
+    {
         auto vals = make_values_with_collisions(n);
-        auto s = make_test_set(vals);
-        auto acc = [] (unsigned r, conflictor x) {
-            return r + x.v1 + x.v2;
-        };
+        auto s    = make_test_set(vals);
+        auto acc  = [](unsigned r, conflictor x) { return r + x.v1 + x.v2; };
         auto sum1 = std::accumulate(vals.begin(), vals.end(), 0, acc);
         auto sum2 = immer::accumulate(s, 0u, acc);
         CHECK(sum1 == sum2);
     }
 }
 
+TEST_CASE("find")
+{
+    const auto n = 666u;
+    auto v       = make_test_set(n);
+    CHECK(*v.find(0) == 0);
+    CHECK(*v.find(42) == 42);
+    CHECK(*v.find(665) == 665);
+    CHECK(v.find(666) == nullptr);
+    CHECK(v.find(1234) == nullptr);
+}
+
 TEST_CASE("iterator")
 {
     const auto N = 666u;
-    auto v = make_test_set(N);
+    auto v       = make_test_set(N);
 
     SECTION("empty set")
     {
@@ -242,7 +296,7 @@ TEST_CASE("iterator")
     SECTION("iterator and collisions")
     {
         auto vals = make_values_with_collisions(N);
-        auto s = make_test_set(vals);
+        auto s    = make_test_set(vals);
         auto seen = std::unordered_set<conflictor, hash_conflictor>{};
         for (const auto& x : s)
             CHECK(seen.insert(x).second);
@@ -257,7 +311,7 @@ struct non_default
     operator unsigned() const { return value; }
 
 #if IMMER_DEBUG_PRINT
-    friend std::ostream& operator<< (std::ostream& os, non_default x)
+    friend std::ostream& operator<<(std::ostream& os, non_default x)
     {
         os << "ND{" << x.value << "}";
         return os;
@@ -270,7 +324,7 @@ namespace std {
 template <>
 struct hash<non_default>
 {
-    std::size_t operator() (const non_default& x)
+    std::size_t operator()(const non_default& x)
     {
         return std::hash<decltype(x.value)>{}(x.value);
     }
@@ -284,7 +338,7 @@ TEST_CASE("non default")
 
     auto v = SET_T<non_default>{};
     for (auto i = 0u; i < n; ++i)
-        v = v.insert({ i });
+        v = v.insert({i});
 
     CHECK(v.size() == n);
 }
@@ -292,7 +346,7 @@ TEST_CASE("non default")
 TEST_CASE("equals")
 {
     const auto n = 666u;
-    auto v = make_test_set(n);
+    auto v       = make_test_set(n);
 
     CHECK(v == v);
     CHECK(v != v.insert(1234));
@@ -305,16 +359,16 @@ TEST_CASE("equals")
 TEST_CASE("equals collisions")
 {
     const auto n = 666u;
-    auto vals = make_values_with_collisions(n);
-    auto v = make_test_set(vals);
+    auto vals    = make_values_with_collisions(n);
+    auto v       = make_test_set(vals);
 
     CHECK(v == v);
     CHECK(v != v.erase(vals[42]));
     CHECK(v == v.erase(vals[42]).insert(vals[42]));
-    CHECK(v == v.erase(vals[42]).erase(vals[13])
-          .insert(vals[42]).insert(vals[13]));
-    CHECK(v == v.erase(vals[42]).erase(vals[13])
-          .insert(vals[13]).insert(vals[42]));
+    CHECK(v ==
+          v.erase(vals[42]).erase(vals[13]).insert(vals[42]).insert(vals[13]));
+    CHECK(v ==
+          v.erase(vals[42]).erase(vals[13]).insert(vals[13]).insert(vals[42]));
 }
 
 TEST_CASE("exception safety")
@@ -322,7 +376,8 @@ TEST_CASE("exception safety")
     constexpr auto n = 2666u;
 
     using dadaist_set_t = typename dadaist_wrapper<SET_T<unsigned>>::type;
-    using dadaist_conflictor_set_t = typename dadaist_wrapper<SET_T<conflictor, hash_conflictor>>::type;
+    using dadaist_conflictor_set_t =
+        typename dadaist_wrapper<SET_T<conflictor, hash_conflictor>>::type;
 
     SECTION("insert")
     {
@@ -331,7 +386,7 @@ TEST_CASE("exception safety")
         for (auto i = 0u; v.size() < n;) {
             try {
                 auto s = d.next();
-                v = v.insert({i});
+                v      = v.insert({i});
                 ++i;
             } catch (dada_error) {}
             for (auto i : test_irange(0u, i))
@@ -344,12 +399,12 @@ TEST_CASE("exception safety")
     SECTION("insert collisions")
     {
         auto vals = make_values_with_collisions(n);
-        auto v = dadaist_conflictor_set_t{};
-        auto d = dadaism{};
+        auto v    = dadaist_conflictor_set_t{};
+        auto d    = dadaism{};
         for (auto i = 0u; v.size() < n;) {
             try {
                 auto s = d.next();
-                v = v.insert({vals[i]});
+                v      = v.insert({vals[i]});
                 ++i;
             } catch (dada_error) {}
             for (auto i : test_irange(0u, i))
@@ -368,7 +423,7 @@ TEST_CASE("exception safety")
         for (auto i = 0u; v.size() > 0;) {
             try {
                 auto s = d.next();
-                v = v.erase({i});
+                v      = v.erase({i});
                 ++i;
             } catch (dada_error) {}
             for (auto i : test_irange(0u, i))
@@ -383,14 +438,14 @@ TEST_CASE("exception safety")
     SECTION("erase collisisions")
     {
         auto vals = make_values_with_collisions(n);
-        auto v = dadaist_conflictor_set_t{};
-        auto d = dadaism{};
+        auto v    = dadaist_conflictor_set_t{};
+        auto d    = dadaism{};
         for (auto i = 0u; i < n; ++i)
             v = v.insert({vals[i]});
         for (auto i = 0u; v.size() > 0;) {
             try {
                 auto s = d.next();
-                v = v.erase({vals[i]});
+                v      = v.erase({vals[i]});
                 ++i;
             } catch (dada_error) {}
             for (auto i : test_irange(0u, i))

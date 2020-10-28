@@ -1,21 +1,9 @@
 //
-// immer - immutable data structures for C++
-// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
+// immer: immutable data structures for C++
+// Copyright (C) 2016, 2017, 2018 Juan Pedro Bolivar Puente
 //
-// This file is part of immer.
-//
-// immer is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// immer is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with immer.  If not, see <http://www.gnu.org/licenses/>.
+// This software is distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://boost.org/LICENSE_1_0.txt
 //
 
 #pragma once
@@ -29,30 +17,34 @@
 #error "Using garbage collection requires libgc"
 #endif
 
+#include <cassert>
 #include <cstdlib>
+#include <exception>
 #include <memory>
 
 namespace immer {
 
-#ifdef __APPLE__
-#define IMMER_GC_REQUIRE_INIT 1
+#ifdef IMMER_GC_REQUIRE_INIT
+#define IMMER_GC_REQUIRE_INIT_ IMMER_GC_REQUIRE_INIT
+#elifdef __APPLE__
+#define IMMER_GC_REQUIRE_INIT_ 1
 #else
-#define IMMER_GC_REQUIRE_INIT 0
+#define IMMER_GC_REQUIRE_INIT_ 0
 #endif
 
-#if IMMER_GC_REQUIRE_INIT
+#if IMMER_GC_REQUIRE_INIT_
 
 namespace detail {
 
-template <int Dummy=0>
+template <int Dummy = 0>
 struct gc_initializer
 {
-    gc_initializer() { GC_init(); }
+    gc_initializer() { GC_INIT(); }
     static gc_initializer init;
 };
 
 template <int D>
-gc_initializer<D> gc_initializer<D>::init {};
+gc_initializer<D> gc_initializer<D>::init{};
 
 inline void gc_initializer_guard()
 {
@@ -68,7 +60,7 @@ inline void gc_initializer_guard()
 
 #define IMMER_GC_INIT_GUARD_
 
-#endif // IMMER_GC_REQUIRE_INIT
+#endif // IMMER_GC_REQUIRE_INIT_
 
 /*!
  * Heap that uses a tracing garbage collector.
@@ -115,7 +107,7 @@ public:
         IMMER_GC_INIT_GUARD_;
         auto p = GC_malloc(n);
         if (IMMER_UNLIKELY(!p))
-            throw std::bad_alloc{};
+            IMMER_THROW(std::bad_alloc{});
         return p;
     }
 
@@ -124,14 +116,11 @@ public:
         IMMER_GC_INIT_GUARD_;
         auto p = GC_malloc_atomic(n);
         if (IMMER_UNLIKELY(!p))
-            throw std::bad_alloc{};
+            IMMER_THROW(std::bad_alloc{});
         return p;
     }
 
-    static void deallocate(std::size_t, void* data)
-    {
-        GC_free(data);
-    }
+    static void deallocate(std::size_t, void* data) { GC_free(data); }
 
     static void deallocate(std::size_t, void* data, norefs_tag)
     {

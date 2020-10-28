@@ -1,30 +1,19 @@
 //
-// immer - immutable data structures for C++
-// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
+// immer: immutable data structures for C++
+// Copyright (C) 2016, 2017, 2018 Juan Pedro Bolivar Puente
 //
-// This file is part of immer.
-//
-// immer is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// immer is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with immer.  If not, see <http://www.gnu.org/licenses/>.
+// This software is distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://boost.org/LICENSE_1_0.txt
 //
 
 #pragma once
 
+#include <cstddef>
 #include <type_traits>
 
-#if __GNUC__ == 7 || __GNUC_MINOR__ == 1
+#if defined(__GNUC__) && __GNUC__ == 7 && __GNUC_MINOR__ == 1
 #define IMMER_BROKEN_STANDARD_LAYOUT_DETECTION 1
-#define immer_offsetof(st, m) ((std::size_t) &(((st*)0)->m))
+#define immer_offsetof(st, m) ((std::size_t) & (((st*) 0)->m))
 #else
 #define IMMER_BROKEN_STANDARD_LAYOUT_DETECTION 0
 #define immer_offsetof offsetof
@@ -60,7 +49,8 @@ using combine_standard_layout_t = typename combine_standard_layout<Ts...>::type;
 namespace csl {
 
 template <typename T>
-struct type_t {};
+struct type_t
+{};
 
 template <typename U, typename T>
 U& get(T& x);
@@ -68,17 +58,25 @@ U& get(T& x);
 template <typename U, typename T>
 const U& get(const T& x);
 
-template <typename T, typename Next=void>
+template <typename T, typename Next = void>
 struct inherit
 {
-    struct type : T, Next
+    struct type
+        : T
+        , Next
     {
         using Next::get_;
 
         template <typename U>
-        friend decltype(auto) get(type& x) { return x.get_(type_t<U>{}); }
+        friend decltype(auto) get(type& x)
+        {
+            return x.get_(type_t<U>{});
+        }
         template <typename U>
-        friend decltype(auto) get(const type& x) { return x.get_(type_t<U>{}); }
+        friend decltype(auto) get(const type& x)
+        {
+            return x.get_(type_t<U>{});
+        }
 
         T& get_(type_t<T>) { return *this; }
         const T& get_(type_t<T>) const { return *this; }
@@ -91,16 +89,22 @@ struct inherit<T, void>
     struct type : T
     {
         template <typename U>
-        friend decltype(auto) get(type& x) { return x.get_(type_t<U>{}); }
+        friend decltype(auto) get(type& x)
+        {
+            return x.get_(type_t<U>{});
+        }
         template <typename U>
-        friend decltype(auto) get(const type& x) { return x.get_(type_t<U>{}); }
+        friend decltype(auto) get(const type& x)
+        {
+            return x.get_(type_t<U>{});
+        }
 
         T& get_(type_t<T>) { return *this; }
         const T& get_(type_t<T>) const { return *this; }
     };
 };
 
-template <typename T, typename Next=void>
+template <typename T, typename Next = void>
 struct member
 {
     struct type : Next
@@ -110,9 +114,15 @@ struct member
         using Next::get_;
 
         template <typename U>
-        friend decltype(auto) get(type& x) { return x.get_(type_t<U>{}); }
+        friend decltype(auto) get(type& x)
+        {
+            return x.get_(type_t<U>{});
+        }
         template <typename U>
-        friend decltype(auto) get(const type& x) { return x.get_(type_t<U>{}); }
+        friend decltype(auto) get(const type& x)
+        {
+            return x.get_(type_t<U>{});
+        }
 
         T& get_(type_t<T>) { return d; }
         const T& get_(type_t<T>) const { return d; }
@@ -127,9 +137,15 @@ struct member<T, void>
         T d;
 
         template <typename U>
-        friend decltype(auto) get(type& x) { return x.get_(type_t<U>{}); }
+        friend decltype(auto) get(type& x)
+        {
+            return x.get_(type_t<U>{});
+        }
         template <typename U>
-        friend decltype(auto) get(const type& x) { return x.get_(type_t<U>{}); }
+        friend decltype(auto) get(const type& x)
+        {
+            return x.get_(type_t<U>{});
+        }
 
         T& get_(type_t<T>) { return d; }
         const T& get_(type_t<T>) const { return d; }
@@ -145,17 +161,29 @@ struct member_two
         T d;
 
         template <typename U>
-        friend decltype(auto) get(type& x) { return x.get_(type_t<U>{}); }
+        friend decltype(auto) get(type& x)
+        {
+            return x.get_(type_t<U>{});
+        }
         template <typename U>
-        friend decltype(auto) get(const type& x) { return x.get_(type_t<U>{}); }
+        friend decltype(auto) get(const type& x)
+        {
+            return x.get_(type_t<U>{});
+        }
 
         T& get_(type_t<T>) { return d; }
         const T& get_(type_t<T>) const { return d; }
 
         template <typename U>
-        auto get_(type_t<U> t) -> decltype(auto) { return n.get_(t); }
+        auto get_(type_t<U> t) -> decltype(auto)
+        {
+            return n.get_(t);
+        }
         template <typename U>
-        auto get_(type_t<U> t) const -> decltype(auto) { return n.get_(t); }
+        auto get_(type_t<U> t) const -> decltype(auto)
+        {
+            return n.get_(t);
+        }
     };
 };
 
@@ -167,10 +195,9 @@ struct combine_standard_layout_aux<T>
 {
     static_assert(std::is_standard_layout<T>::value, "");
 
-    using type = typename std::conditional_t<
-        std::is_empty<T>::value,
-        csl::inherit<T>,
-        csl::member<T>>::type;
+    using type = typename std::conditional_t<std::is_empty<T>::value,
+                                             csl::inherit<T>,
+                                             csl::member<T>>::type;
 };
 
 template <typename T, typename... Ts>
@@ -185,10 +212,11 @@ struct combine_standard_layout_aux<T, Ts...>
     static constexpr auto empty_next = std::is_empty<next_t>::value;
 
     using type = typename std::conditional_t<
-        empty_this, inherit<this_t, next_t>,
-        std::conditional_t<
-            empty_next, member<this_t, next_t>,
-            member_two<this_t, next_t>>>::type;
+        empty_this,
+        inherit<this_t, next_t>,
+        std::conditional_t<empty_next,
+                           member<this_t, next_t>,
+                           member_two<this_t, next_t>>>::type;
 };
 
 } // namespace csl

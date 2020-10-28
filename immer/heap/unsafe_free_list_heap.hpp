@@ -1,28 +1,18 @@
 //
-// immer - immutable data structures for C++
-// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
+// immer: immutable data structures for C++
+// Copyright (C) 2016, 2017, 2018 Juan Pedro Bolivar Puente
 //
-// This file is part of immer.
-//
-// immer is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// immer is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with immer.  If not, see <http://www.gnu.org/licenses/>.
+// This software is distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://boost.org/LICENSE_1_0.txt
 //
 
 #pragma once
 
 #include <immer/config.hpp>
 #include <immer/heap/free_list_node.hpp>
+
 #include <cassert>
+#include <cstddef>
 
 namespace immer {
 namespace detail {
@@ -38,12 +28,12 @@ struct unsafe_free_list_storage
 
     static head_t& head()
     {
-        static head_t head_ {nullptr, 0};
+        static head_t head_{nullptr, 0};
         return head_;
     }
 };
 
-template <template<class>class Storage,
+template <template <class> class Storage,
           std::size_t Size,
           std::size_t Limit,
           typename Base>
@@ -79,8 +69,8 @@ public:
         if (storage::head().count >= Limit)
             base_t::deallocate(Size + sizeof(free_list_node), data);
         else {
-            auto n = static_cast<free_list_node*>(data);
-            n->next = storage::head().data;
+            auto n               = static_cast<free_list_node*>(data);
+            n->next              = storage::head().data;
             storage::head().data = n;
             ++storage::head().count;
         }
@@ -90,7 +80,8 @@ public:
     {
         while (storage::head().data) {
             auto n = storage::head().data->next;
-            base_t::deallocate(Size + sizeof(free_list_node), storage::head().data);
+            base_t::deallocate(Size + sizeof(free_list_node),
+                               storage::head().data);
             storage::head().data = n;
             --storage::head().count;
         }
@@ -110,11 +101,11 @@ public:
  * @tparam Base  Type of the parent heap.
  */
 template <std::size_t Size, std::size_t Limit, typename Base>
-struct unsafe_free_list_heap : detail::unsafe_free_list_heap_impl<
-    detail::unsafe_free_list_storage,
-    Size,
-    Limit,
-    Base>
+struct unsafe_free_list_heap
+    : detail::unsafe_free_list_heap_impl<detail::unsafe_free_list_storage,
+                                         Size,
+                                         Limit,
+                                         Base>
 {};
 
 } // namespace immer

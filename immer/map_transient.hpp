@@ -1,40 +1,40 @@
 //
-// immer - immutable data structures for C++
-// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
+// immer: immutable data structures for C++
+// Copyright (C) 2016, 2017, 2018 Juan Pedro Bolivar Puente
 //
-// This file is part of immer.
-//
-// immer is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// immer is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with immer.  If not, see <http://www.gnu.org/licenses/>.
+// This software is distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://boost.org/LICENSE_1_0.txt
 //
 
 #pragma once
 
-#include <immer/memory_policy.hpp>
 #include <immer/detail/hamts/champ.hpp>
+#include <immer/memory_policy.hpp>
 
 #include <functional>
 
 namespace immer {
 
 /*!
- * **WORK IN PROGRESS**
+ * @rst
+ *
+ * .. admonition:: Become a sponsor!
+ *    :class: danger
+ *
+ *    This component is planned but it has **not been implemented yet**.
+ *
+ *    Transiens can critically improve the performance of applications
+ *    intensively using ``set`` and ``map``. If you are working for an
+ *    organization using the library in a commercial project, please consider
+ *    **sponsoring this work**: juanpe@sinusoid.al
+ *
+ * @endrst
  */
 template <typename K,
           typename T,
-          typename Hash          = std::hash<K>,
-          typename Equal         = std::equal_to<K>,
-          typename MemoryPolicy  = default_memory_policy,
+          typename Hash           = std::hash<K>,
+          typename Equal          = std::equal_to<K>,
+          typename MemoryPolicy   = default_memory_policy,
           detail::hamts::bits_t B = default_bits>
 class map_transient;
 

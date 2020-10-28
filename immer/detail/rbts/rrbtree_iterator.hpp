@@ -1,27 +1,15 @@
 //
-// immer - immutable data structures for C++
-// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
+// immer: immutable data structures for C++
+// Copyright (C) 2016, 2017, 2018 Juan Pedro Bolivar Puente
 //
-// This file is part of immer.
-//
-// immer is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// immer is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with immer.  If not, see <http://www.gnu.org/licenses/>.
+// This software is distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://boost.org/LICENSE_1_0.txt
 //
 
 #pragma once
 
-#include <immer/detail/rbts/rrbtree.hpp>
 #include <immer/detail/iterator_facade.hpp>
+#include <immer/detail/rbts/rrbtree.hpp>
 
 namespace immer {
 namespace detail {
@@ -32,12 +20,15 @@ struct rrbtree_iterator
     : iterator_facade<rrbtree_iterator<T, MP, B, BL>,
                       std::random_access_iterator_tag,
                       T,
-                      const T&>
+                      const T&,
+                      std::ptrdiff_t,
+                      const T*>
 {
     using tree_t   = rrbtree<T, MP, B, BL>;
     using region_t = std::tuple<const T*, size_t, size_t>;
 
-    struct end_t {};
+    struct end_t
+    {};
 
     const tree_t& impl() const { return *v_; }
     size_t index() const { return i_; }
@@ -45,23 +36,22 @@ struct rrbtree_iterator
     rrbtree_iterator() = default;
 
     rrbtree_iterator(const tree_t& v)
-        : v_    { &v }
-        , i_    { 0 }
-        , curr_ { nullptr, ~size_t{}, ~size_t{} }
-    {
-    }
+        : v_{&v}
+        , i_{0}
+        , curr_{nullptr, ~size_t{}, ~size_t{}}
+    {}
 
     rrbtree_iterator(const tree_t& v, end_t)
-        : v_    { &v }
-        , i_    { v.size }
-        , curr_ { nullptr, ~size_t{}, ~size_t{} }
+        : v_{&v}
+        , i_{v.size}
+        , curr_{nullptr, ~size_t{}, ~size_t{}}
     {}
 
 private:
     friend iterator_core_access;
 
     const tree_t* v_;
-    size_t   i_;
+    size_t i_;
     mutable region_t curr_;
 
     void increment()
@@ -86,16 +76,12 @@ private:
         i_ += n;
     }
 
-    bool equal(const rrbtree_iterator& other) const
-    {
-        return i_ == other.i_;
-    }
+    bool equal(const rrbtree_iterator& other) const { return i_ == other.i_; }
 
     std::ptrdiff_t distance_to(const rrbtree_iterator& other) const
     {
-        return other.i_ > i_
-            ?   static_cast<std::ptrdiff_t>(other.i_ - i_)
-            : - static_cast<std::ptrdiff_t>(i_ - other.i_);
+        return other.i_ > i_ ? static_cast<std::ptrdiff_t>(other.i_ - i_)
+                             : -static_cast<std::ptrdiff_t>(i_ - other.i_);
     }
 
     const T& dereference() const

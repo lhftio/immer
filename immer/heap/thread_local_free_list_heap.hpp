@@ -1,26 +1,16 @@
 //
-// immer - immutable data structures for C++
-// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
+// immer: immutable data structures for C++
+// Copyright (C) 2016, 2017, 2018 Juan Pedro Bolivar Puente
 //
-// This file is part of immer.
-//
-// immer is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// immer is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with immer.  If not, see <http://www.gnu.org/licenses/>.
+// This software is distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://boost.org/LICENSE_1_0.txt
 //
 
 #pragma once
 
 #include <immer/heap/unsafe_free_list_heap.hpp>
+
+#include <cstddef>
 
 namespace immer {
 namespace detail {
@@ -57,11 +47,11 @@ struct thread_local_free_list_storage
  * @tparam Base  Type of the parent heap.
  */
 template <std::size_t Size, std::size_t Limit, typename Base>
-struct thread_local_free_list_heap : detail::unsafe_free_list_heap_impl<
-    detail::thread_local_free_list_storage,
-    Size,
-    Limit,
-    Base>
+struct thread_local_free_list_heap
+    : detail::unsafe_free_list_heap_impl<detail::thread_local_free_list_storage,
+                                         Size,
+                                         Limit,
+                                         Base>
 {};
 
 } // namespace immer

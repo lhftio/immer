@@ -1,29 +1,21 @@
 //
-// immer - immutable data structures for C++
-// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
+// immer: immutable data structures for C++
+// Copyright (C) 2016, 2017, 2018 Juan Pedro Bolivar Puente
 //
-// This file is part of immer.
-//
-// immer is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// immer is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with immer.  If not, see <http://www.gnu.org/licenses/>.
+// This software is distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://boost.org/LICENSE_1_0.txt
 //
 
 #pragma once
 
-#include <stdexcept>
 #include <cstdint>
+#include <memory>
+#include <stdexcept>
 
-struct no_more_input : std::exception {};
+struct no_more_input : std::exception
+{};
+
+constexpr auto fuzzer_input_max_size = 1 << 16;
 
 struct fuzzer_input
 {
@@ -32,7 +24,8 @@ struct fuzzer_input
 
     const std::uint8_t* next(std::size_t size)
     {
-        if (size_ < size) throw no_more_input{};
+        if (size_ < size)
+            throw no_more_input{};
         auto r = data_;
         data_ += size;
         size_ -= size;
@@ -41,16 +34,21 @@ struct fuzzer_input
 
     const std::uint8_t* next(std::size_t size, std::size_t align)
     {
-        auto rem = size % align;
-        if (rem) next(align - rem);
+        auto& p = const_cast<void*&>(reinterpret_cast<const void*&>(data_));
+        auto r  = std::align(align, size, p, size_);
+        if (r == nullptr)
+            throw no_more_input{};
         return next(size);
     }
 
     template <typename Fn>
     int run(Fn step)
     {
+        if (size_ > fuzzer_input_max_size)
+            return 0;
         try {
-            while (step(*this));
+            while (step(*this))
+                continue;
         } catch (const no_more_input&) {};
         return 0;
     }
@@ -66,7 +64,7 @@ template <typename T, typename Cond>
 T read(fuzzer_input& fz, Cond cond)
 {
     auto x = read<T>(fz);
-    return cond(x)
-        ? x
-        : read<T>(fz, cond);
+    while (!cond(x))
+        x = read<T>(fz);
+    return x;
 }

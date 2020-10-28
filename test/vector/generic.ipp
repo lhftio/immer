@@ -1,40 +1,31 @@
 //
-// immer - immutable data structures for C++
-// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
+// immer: immutable data structures for C++
+// Copyright (C) 2016, 2017, 2018 Juan Pedro Bolivar Puente
 //
-// This file is part of immer.
-//
-// immer is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// immer is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with immer.  If not, see <http://www.gnu.org/licenses/>.
+// This software is distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://boost.org/LICENSE_1_0.txt
 //
 
-#include "test/util.hpp"
 #include "test/dada.hpp"
+#include "test/util.hpp"
 
 #include <immer/algorithm.hpp>
 
-#include <catch.hpp>
 #include <boost/range/adaptors.hpp>
+#include <catch.hpp>
 
 #include <algorithm>
 #include <numeric>
+#include <string>
 #include <vector>
+
+using namespace std::string_literals;
 
 #ifndef VECTOR_T
 #error "define the vector template to use in VECTOR_T"
 #endif
 
-template <typename V=VECTOR_T<unsigned>>
+template <typename V = VECTOR_T<unsigned>>
 auto make_test_vector(unsigned min, unsigned max)
 {
     auto v = V{};
@@ -48,18 +39,27 @@ struct big_object
     std::array<std::size_t, 42> v;
 };
 
+struct string_sentinel
+{};
+
+bool operator==(const char16_t* i, string_sentinel) { return *i == '\0'; }
+
+bool operator!=(const char16_t* i, string_sentinel) { return *i != '\0'; }
+
 TEST_CASE("instantiation")
 {
     SECTION("default")
     {
         auto v = VECTOR_T<int>{};
         CHECK(v.size() == 0u);
+        CHECK(v.empty());
     }
 
     SECTION("initializer list")
     {
         auto v = VECTOR_T<unsigned>{0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
         CHECK_VECTOR_EQUALS(v, boost::irange(0u, 10u));
+        CHECK(!v.empty());
     }
 
     SECTION("big object")
@@ -75,11 +75,26 @@ TEST_CASE("instantiation")
         CHECK_VECTOR_EQUALS(v, boost::irange(0u, 10u));
     }
 
+    SECTION("empty range")
+    {
+        auto r = std::vector<int>{};
+        auto v = VECTOR_T<unsigned>{r.begin(), r.end()};
+        CHECK(v.size() == 0);
+    }
+
+    SECTION("iterator/sentinel")
+    {
+        auto r = u"012345678";
+        string_sentinel s;
+        auto v = VECTOR_T<unsigned>{r, s};
+        CHECK_VECTOR_EQUALS(v, boost::irange(u'0', u'9'));
+    }
+
     SECTION("fill")
     {
         auto v1 = VECTOR_T<int>(4);
         CHECK(v1.size() == 4);
-        auto v2 = VECTOR_T<int>(size_t{4}, 42);
+        auto v2 = VECTOR_T<int>(4, 42);
         CHECK(v2.size() == 4);
         CHECK(v2[2] == 42);
     }
@@ -97,8 +112,10 @@ TEST_CASE("at")
     auto v = VECTOR_T<unsigned>{0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
     CHECK(v.at(0) == 0);
     CHECK(v.at(5) == 5);
-    CHECK_THROWS_AS(v.at(10), std::out_of_range);
-    CHECK_THROWS_AS(v.at(11), std::out_of_range);
+#ifndef IMMER_NO_EXCEPTIONS
+    CHECK_THROWS_AS(v.at(10), const std::out_of_range&);
+    CHECK_THROWS_AS(v.at(11), const std::out_of_range&);
+#endif
 }
 
 TEST_CASE("push back one element")
@@ -106,7 +123,7 @@ TEST_CASE("push back one element")
     SECTION("one element")
     {
         const auto v1 = VECTOR_T<int>{};
-        auto v2 = v1.push_back(42);
+        auto v2       = v1.push_back(42);
         CHECK(v1.size() == 0u);
         CHECK(v2.size() == 1u);
         CHECK(v2[0] == 42);
@@ -115,7 +132,7 @@ TEST_CASE("push back one element")
     SECTION("many elements")
     {
         const auto n = 666u;
-        auto v = VECTOR_T<unsigned>{};
+        auto v       = VECTOR_T<unsigned>{};
         for (auto i = 0u; i < n; ++i) {
             v = v.push_back(i * 42);
             CHECK(v.size() == i + 1);
@@ -128,7 +145,7 @@ TEST_CASE("push back one element")
 TEST_CASE("update")
 {
     const auto n = 42u;
-    auto v = make_test_vector(0, n);
+    auto v       = make_test_vector(0, n);
 
     SECTION("set")
     {
@@ -146,7 +163,7 @@ TEST_CASE("update")
         auto v = make_test_vector(0, 666);
 
         auto u = v.set(3u, 13u);
-        u = u.set(200u, 7u);
+        u      = u.set(200u, 7u);
         CHECK(u.size() == v.size());
 
         CHECK(u[2u] == 2u);
@@ -166,19 +183,19 @@ TEST_CASE("update")
         auto v = make_test_vector(0, 666u);
 
         for (decltype(v.size()) i = 0; i < v.size(); ++i) {
-            v = v.set(i, i+1);
-            CHECK(v[i] == i+1);
+            v = v.set(i, i + 1);
+            CHECK(v[i] == i + 1);
         }
     }
 
     SECTION("update")
     {
-        const auto u = v.update(10u, [] (auto x) { return x + 10; });
+        const auto u = v.update(10u, [](auto x) { return x + 10; });
         CHECK(u.size() == v.size());
         CHECK(u[10u] == 20u);
         CHECK(v[40u] == 40u);
 
-        const auto w = v.update(40u, [] (auto x) { return x - 10; });
+        const auto w = v.update(40u, [](auto x) { return x - 10; });
         CHECK(w.size() == v.size());
         CHECK(w[40u] == 30u);
         CHECK(v[40u] == 40u);
@@ -188,7 +205,7 @@ TEST_CASE("update")
 TEST_CASE("iterator")
 {
     const auto n = 666u;
-    auto v = make_test_vector(0, n);
+    auto v       = make_test_vector(0, n);
 
     SECTION("empty vector")
     {
@@ -213,8 +230,8 @@ TEST_CASE("iterator")
 
     SECTION("can go back from end")
     {
-        auto expected  = n - 1;
-        auto last = v.end();
+        auto expected = n - 1;
+        auto last     = v.end();
         CHECK(expected == *--last);
     }
 
@@ -246,16 +263,16 @@ TEST_CASE("iterator")
         auto i1 = v.begin();
         auto i2 = i1 + 100;
         CHECK(100u == *i2);
-        CHECK(100  == i2 - i1);
-        CHECK(50u  == *(i2 - 50));
-        CHECK(-30  == (i2 - 30) - i2);
+        CHECK(100 == i2 - i1);
+        CHECK(50u == *(i2 - 50));
+        CHECK(-30 == (i2 - 30) - i2);
     }
 }
 
 TEST_CASE("equals")
 {
     const auto n = 666u;
-    auto v = make_test_vector(0, n);
+    auto v       = make_test_vector(0, n);
 
     CHECK(v == v);
     CHECK(v == v.set(42, 42));
@@ -265,39 +282,35 @@ TEST_CASE("equals")
     CHECK(v != v.push_back(7));
     CHECK(v.push_back(7) == v.push_back(7));
     CHECK(v.push_back(5) != v.push_back(7));
-    CHECK(v != v.set(v.size()-2, 24));
-    CHECK(v == v
-          .set(v.size()-2, 24)
-          .set(v.size()-2, v[v.size()-2]));
+    CHECK(v != v.set(v.size() - 2, 24));
+    CHECK(v == v.set(v.size() - 2, 24).set(v.size() - 2, v[v.size() - 2]));
 }
 
 TEST_CASE("all of")
 {
     const auto n = 666u;
-    auto v = make_test_vector(0, n);
+    auto v       = make_test_vector(0, n);
 
     SECTION("false")
     {
-        auto res = immer::all_of(v, [] (auto x) { return x < 100; });
+        auto res = immer::all_of(v, [](auto x) { return x < 100; });
         CHECK(res == false);
     }
     SECTION("true")
     {
-        auto res = immer::all_of(v, [] (auto x) { return x < 1000; });
+        auto res = immer::all_of(v, [](auto x) { return x < 1000; });
         CHECK(res == true);
     }
     SECTION("bounded, true")
     {
-        auto res = immer::all_of(v.begin() + 101,
-                                 v.end() - 10,
-                                 [] (auto x) { return x > 100; });
+        auto res = immer::all_of(
+            v.begin() + 101, v.end() - 10, [](auto x) { return x > 100; });
         CHECK(res == true);
     }
     SECTION("bounded, false")
     {
-        auto res = immer::all_of(v.begin() + 101,
-                                 v.end() - 10,
-                                 [] (auto x) { return x < 600; });
+        auto res = immer::all_of(
+            v.begin() + 101, v.end() - 10, [](auto x) { return x < 600; });
         CHECK(res == false);
     }
 }
@@ -305,16 +318,12 @@ TEST_CASE("all of")
 TEST_CASE("accumulate")
 {
     const auto n = 666u;
-    auto v = make_test_vector(0, n);
+    auto v       = make_test_vector(0, n);
 
-    auto expected_n =
-        [] (auto n) {
-            return n * (n - 1) / 2;
-        };
-    auto expected_i =
-        [&] (auto i, auto n) {
-            return expected_n(n) - expected_n(i);
-        };
+    auto expected_n = [](auto n) { return n * (n - 1) / 2; };
+    auto expected_i = [&](auto i, auto n) {
+        return expected_n(n) - expected_n(i);
+    };
 
     SECTION("sum collection")
     {
@@ -326,14 +335,11 @@ TEST_CASE("accumulate")
     {
         using namespace std;
         {
-            auto sum = immer::accumulate(begin(v) + 100,
-                                         begin(v) + 300,
-                                         0u);
+            auto sum = immer::accumulate(begin(v) + 100, begin(v) + 300, 0u);
             CHECK(sum == expected_i(100, 300));
         }
         {
-            auto sum = immer::accumulate(begin(v) + 31,
-                                         begin(v) + 300, 0u);
+            auto sum = immer::accumulate(begin(v) + 31, begin(v) + 300, 0u);
             CHECK(sum == expected_i(31, 300));
         }
         {
@@ -341,18 +347,15 @@ TEST_CASE("accumulate")
             CHECK(sum == expected_i(0, 33));
         }
         {
-            auto sum = immer::accumulate(begin(v) + 100,
-                                         begin(v) + 660, 0u);
+            auto sum = immer::accumulate(begin(v) + 100, begin(v) + 660, 0u);
             CHECK(sum == expected_i(100, 660));
         }
         {
-            auto sum = immer::accumulate(begin(v) + 100,
-                                         begin(v) + 105, 0u);
+            auto sum = immer::accumulate(begin(v) + 100, begin(v) + 105, 0u);
             CHECK(sum == expected_i(100, 105));
         }
         {
-            auto sum = immer::accumulate(begin(v) + 660,
-                                         begin(v) + 664, 0u);
+            auto sum = immer::accumulate(begin(v) + 660, begin(v) + 664, 0u);
             CHECK(sum == expected_i(660, 664));
         }
     }
@@ -385,7 +388,7 @@ struct non_default
     operator unsigned() const { return value; }
 
 #if IMMER_DEBUG_PRINT
-    friend std::ostream& operator<< (std::ostream& os, non_default x)
+    friend std::ostream& operator<<(std::ostream& os, non_default x)
     {
         os << "ND{" << x.value << "}";
         return os;
@@ -399,7 +402,7 @@ TEST_CASE("non default")
 
     auto v = VECTOR_T<non_default>{};
     for (auto i = 0u; i < n; ++i)
-        v = v.push_back({ i });
+        v = v.push_back({i});
 
     CHECK_VECTOR_EQUALS(v, boost::irange(0u, n));
 
@@ -457,12 +460,11 @@ TEST_CASE("exception safety")
         for (auto i = 0u; i < n;) {
             auto s = d.next();
             try {
-                v = v.update(i, [] (auto x) { return dada(), x + 1; });
+                v = v.update(i, [](auto x) { return dada(), x + 1; });
                 ++i;
             } catch (dada_error) {}
-            CHECK_VECTOR_EQUALS(v, boost::join(
-                                    boost::irange(1u, 1u + i),
-                                    boost::irange(i, n)));
+            CHECK_VECTOR_EQUALS(
+                v, boost::join(boost::irange(1u, 1u + i), boost::irange(i, n)));
         }
         CHECK(d.happenings > 0);
         IMMER_TRACE_E(d.happenings);

@@ -1,30 +1,18 @@
 //
-// immer - immutable data structures for C++
-// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
+// immer: immutable data structures for C++
+// Copyright (C) 2016, 2017, 2018 Juan Pedro Bolivar Puente
 //
-// This file is part of immer.
-//
-// immer is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// immer is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with immer.  If not, see <http://www.gnu.org/licenses/>.
+// This software is distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://boost.org/LICENSE_1_0.txt
 //
 
 #pragma once
 
 #include <immer/heap/tags.hpp>
 
+#include <atomic>
 #include <memory>
 #include <utility>
-#include <atomic>
 
 namespace immer {
 
@@ -66,7 +54,7 @@ struct gc_transience_policy
 
                 mutable std::atomic<void*> token_;
 
-                operator edit () { return { token_ }; }
+                operator edit() { return {token_}; }
 
                 owner()
                     : token_{make_token_()}
@@ -94,7 +82,7 @@ struct gc_transience_policy
 
             struct ownee
             {
-                edit token_ {nullptr};
+                edit token_{nullptr};
 
                 ownee& operator=(edit e)
                 {
@@ -117,6 +105,6 @@ struct gc_transience_policy
 
 template <typename HP>
 typename gc_transience_policy::apply<HP>::type::owner
-gc_transience_policy::apply<HP>::type::noone = {};
+    gc_transience_policy::apply<HP>::type::noone = {};
 
 } // namespace immer

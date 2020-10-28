@@ -1,21 +1,9 @@
 //
-// immer - immutable data structures for C++
-// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
+// immer: immutable data structures for C++
+// Copyright (C) 2016, 2017, 2018 Juan Pedro Bolivar Puente
 //
-// This file is part of immer.
-//
-// immer is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// immer is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with immer.  If not, see <http://www.gnu.org/licenses/>.
+// This software is distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://boost.org/LICENSE_1_0.txt
 //
 
 #pragma once
@@ -59,8 +47,8 @@ template <typename Iterator, typename Fn>
 void for_each_chunk(const Iterator& first, const Iterator& last, Fn&& fn)
 {
     assert(&first.impl() == &last.impl());
-    first.impl().for_each_chunk(first.index(), last.index(),
-                                std::forward<Fn>(fn));
+    first.impl().for_each_chunk(
+        first.index(), last.index(), std::forward<Fn>(fn));
 }
 
 template <typename T, typename Fn>
@@ -93,8 +81,8 @@ template <typename Iterator, typename Fn>
 bool for_each_chunk_p(const Iterator& first, const Iterator& last, Fn&& fn)
 {
     assert(&first.impl() == &last.impl());
-    return first.impl().for_each_chunk_p(first.index(), last.index(),
-                                         std::forward<Fn>(fn));
+    return first.impl().for_each_chunk_p(
+        first.index(), last.index(), std::forward<Fn>(fn));
 }
 
 template <typename T, typename Fn>
@@ -109,7 +97,7 @@ bool for_each_chunk_p(const T* first, const T* last, Fn&& fn)
 template <typename Range, typename T>
 T accumulate(Range&& r, T init)
 {
-    for_each_chunk(r, [&] (auto first, auto last) {
+    for_each_chunk(r, [&](auto first, auto last) {
         init = std::accumulate(first, last, init);
     });
     return init;
@@ -118,7 +106,7 @@ T accumulate(Range&& r, T init)
 template <typename Range, typename T, typename Fn>
 T accumulate(Range&& r, T init, Fn fn)
 {
-    for_each_chunk(r, [&] (auto first, auto last) {
+    for_each_chunk(r, [&](auto first, auto last) {
         init = std::accumulate(first, last, init, fn);
     });
     return init;
@@ -131,7 +119,7 @@ T accumulate(Range&& r, T init, Fn fn)
 template <typename Iterator, typename T>
 T accumulate(Iterator first, Iterator last, T init)
 {
-    for_each_chunk(first, last, [&] (auto first, auto last) {
+    for_each_chunk(first, last, [&](auto first, auto last) {
         init = std::accumulate(first, last, init);
     });
     return init;
@@ -140,7 +128,7 @@ T accumulate(Iterator first, Iterator last, T init)
 template <typename Iterator, typename T, typename Fn>
 T accumulate(Iterator first, Iterator last, T init, Fn fn)
 {
-    for_each_chunk(first, last, [&] (auto first, auto last) {
+    for_each_chunk(first, last, [&](auto first, auto last) {
         init = std::accumulate(first, last, init, fn);
     });
     return init;
@@ -152,7 +140,7 @@ T accumulate(Iterator first, Iterator last, T init, Fn fn)
 template <typename Range, typename Fn>
 Fn&& for_each(Range&& r, Fn&& fn)
 {
-    for_each_chunk(r, [&] (auto first, auto last) {
+    for_each_chunk(r, [&](auto first, auto last) {
         for (; first != last; ++first)
             fn(*first);
     });
@@ -166,7 +154,7 @@ Fn&& for_each(Range&& r, Fn&& fn)
 template <typename Iterator, typename Fn>
 Fn&& for_each(Iterator first, Iterator last, Fn&& fn)
 {
-    for_each_chunk(first, last, [&] (auto first, auto last) {
+    for_each_chunk(first, last, [&](auto first, auto last) {
         for (; first != last; ++first)
             fn(*first);
     });
@@ -179,9 +167,8 @@ Fn&& for_each(Iterator first, Iterator last, Fn&& fn)
 template <typename Range, typename OutIter>
 OutIter copy(Range&& r, OutIter out)
 {
-    for_each_chunk(r, [&] (auto first, auto last) {
-        out = std::copy(first, last, out);
-    });
+    for_each_chunk(
+        r, [&](auto first, auto last) { out = std::copy(first, last, out); });
     return out;
 }
 
@@ -192,7 +179,7 @@ OutIter copy(Range&& r, OutIter out)
 template <typename InIter, typename OutIter>
 OutIter copy(InIter first, InIter last, OutIter out)
 {
-    for_each_chunk(first, last, [&] (auto first, auto last) {
+    for_each_chunk(first, last, [&](auto first, auto last) {
         out = std::copy(first, last, out);
     });
     return out;
@@ -204,9 +191,8 @@ OutIter copy(InIter first, InIter last, OutIter out)
 template <typename Range, typename Pred>
 bool all_of(Range&& r, Pred p)
 {
-    return for_each_chunk_p(r, [&] (auto first, auto last) {
-        return std::all_of(first, last, p);
-    });
+    return for_each_chunk_p(
+        r, [&](auto first, auto last) { return std::all_of(first, last, p); });
 }
 
 /*!
@@ -216,7 +202,7 @@ bool all_of(Range&& r, Pred p)
 template <typename Iter, typename Pred>
 bool all_of(Iter first, Iter last, Pred p)
 {
-    return for_each_chunk_p(first, last, [&] (auto first, auto last) {
+    return for_each_chunk_p(first, last, [&](auto first, auto last) {
         return std::all_of(first, last, p);
     });
 }

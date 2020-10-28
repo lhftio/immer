@@ -1,24 +1,62 @@
 //
-// immer - immutable data structures for C++
-// Copyright (C) 2016, 2017 Juan Pedro Bolivar Puente
+// immer: immutable data structures for C++
+// Copyright (C) 2016, 2017, 2018 Juan Pedro Bolivar Puente
 //
-// This file is part of immer.
-//
-// immer is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// immer is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with immer.  If not, see <http://www.gnu.org/licenses/>.
+// This software is distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE or copy at http://boost.org/LICENSE_1_0.txt
 //
 
 #pragma once
+
+#if defined(__has_cpp_attribute)
+#if __has_cpp_attribute(nodiscard)
+#define IMMER_NODISCARD [[nodiscard]]
+#endif
+#else
+#if _MSVC_LANG >= 201703L
+#define IMMER_NODISCARD [[nodiscard]]
+#endif
+#endif
+
+#ifdef __has_feature
+#if !__has_feature(cxx_exceptions)
+#define IMMER_NO_EXCEPTIONS
+#endif
+#endif
+
+#ifdef IMMER_NO_EXCEPTIONS
+#define IMMER_TRY if (true)
+#define IMMER_CATCH(expr) else
+#define IMMER_THROW(expr)                                                      \
+    do {                                                                       \
+        assert(!#expr);                                                        \
+        std::terminate();                                                      \
+    } while (false)
+#define IMMER_RETHROW
+#else
+#define IMMER_TRY try
+#define IMMER_CATCH(expr) catch (expr)
+#define IMMER_THROW(expr) throw expr
+#define IMMER_RETHROW throw
+#endif
+
+#ifndef IMMER_NODISCARD
+#define IMMER_NODISCARD
+#endif
+
+#ifndef IMMER_TAGGED_NODE
+#ifdef NDEBUG
+#define IMMER_TAGGED_NODE 0
+#else
+#define IMMER_TAGGED_NODE 1
+#endif
+#endif
+
+#if IMMER_TAGGED_NODE
+#define IMMER_ASSERT_TAGGED(assertion) assert(assertion)
+#else
+#define IMMER_ASSERT_TAGGED(assertion)
+#endif
 
 #ifndef IMMER_DEBUG_TRACES
 #define IMMER_DEBUG_TRACES 0
@@ -42,17 +80,24 @@
 #else
 #define IMMER_TRACE(...)
 #endif
-#define IMMER_TRACE_F(...)                                              \
+#define IMMER_TRACE_F(...)                                                     \
     IMMER_TRACE(__FILE__ << ":" << __LINE__ << ": " << __VA_ARGS__)
-#define IMMER_TRACE_E(expr)                             \
-    IMMER_TRACE("    " << #expr << " = " << (expr))
+#define IMMER_TRACE_E(expr) IMMER_TRACE("    " << #expr << " = " << (expr))
 
-#define IMMER_UNREACHABLE    __builtin_unreachable()
-#define IMMER_LIKELY(cond)   __builtin_expect(!!(cond), 1)
-#define IMMER_UNLIKELY(cond) __builtin_expect(!!(cond), 0)
-// #define IMMER_PREFETCH(p)    __builtin_prefetch(p)
+#if defined(_MSC_VER)
+#define IMMER_UNREACHABLE __assume(false)
+#define IMMER_LIKELY(cond) cond
+#define IMMER_UNLIKELY(cond) cond
+#define IMMER_FORCEINLINE __forceinline
 #define IMMER_PREFETCH(p)
-#define IMMER_FORCEINLINE    inline __attribute__ ((always_inline))
+#else
+#define IMMER_UNREACHABLE __builtin_unreachable()
+#define IMMER_LIKELY(cond) __builtin_expect(!!(cond), 1)
+#define IMMER_UNLIKELY(cond) __builtin_expect(!!(cond), 0)
+#define IMMER_FORCEINLINE inline __attribute__((always_inline))
+#define IMMER_PREFETCH(p)
+// #define IMMER_PREFETCH(p)    __builtin_prefetch(p)
+#endif
 
 #define IMMER_DESCENT_DEEP 0
 
@@ -64,7 +109,7 @@
 
 namespace immer {
 
-const auto default_bits = 5;
+const auto default_bits           = 5;
 const auto default_free_list_size = 1 << 10;
 
 } // namespace immer
